@@ -49,7 +49,18 @@ void output_monster_list(monster *list, int n, char *title) {
   }
   printf("\n");
 }
-
+void print_monster_list_debug(monster* list, int n, int weight,int name){
+  if(name==1){
+    for(int i=0;i<n;i++){
+      printf("Monster %d : name %s \n",i,list[i].name);
+    }
+  }
+  if(weight==1){
+    for(int i=0;i<n;i++){
+      printf("Monster %d : weight %f \n",i,list[i].weight);
+    }
+  }
+}
 void print_clocks(clock_t clocks) {
   printf("  %lfs CPU time used\n", ((double) clocks) / CLOCKS_PER_SEC);
 }
@@ -61,17 +72,6 @@ void swap_monsters(monster *list, int i, int j)
   memcpy(&temp, list + i, sizeof(monster));
   memcpy(list + i, list + j, sizeof(monster));
   memcpy(list + j, &temp, sizeof(monster));
-}
-
-void check_monster_sort(monster *list, int n, int use_name, int use_weight)
-{
-  for(int i = 1; i < n; i++) {
-    if(compare_monsters(list + i - 1, list + i, use_name, use_weight) > 0) {
-      printf("*** The list is NOT sorted.\n\n");
-      return;
-    }
-  }
-  printf("The list is sorted.\n\n");
 }
 
 /* The core comparison function. */
@@ -90,9 +90,25 @@ int compare_monsters(monster *m1, monster *m2, int use_name, int use_weight)
     }
   }
   else{
-   result= strcmp(m1->name,m2->name);
+    if(strcmp(m1->name,m2->name)>0){
+      result=1;
+    }
+    else{
+      result=0;
+    }
   }
   return result;
+}
+
+void check_monster_sort(monster *list, int n, int use_name, int use_weight)
+{
+  for(int i = 1; i < n; i++) {
+    if(compare_monsters(list + i - 1, list + i, use_name, use_weight) > 0) {
+      printf("*** The list is NOT sorted.\n\n");
+      return;
+    }
+  }
+  printf("The list is sorted.\n\n");
 }
 
 /* Implement ascending quick sort. */
@@ -100,11 +116,11 @@ int compare_monsters(monster *m1, monster *m2, int use_name, int use_weight)
 int repartition(monster *list, int low_index, int high_index, int *comparisons, int *swaps,
                 int use_name, int use_weight)
 {
-  monster* pivot_value=&list[high_index];
+  int pivot = high_index;
   int i =low_index;
   for(int j= low_index; j< high_index; j++){
     (*comparisons)++;
-    if(compare_monsters(&list[j], pivot_value, use_name, use_weight)){
+    if(compare_monsters(&list[pivot], &list[j], use_name, use_weight)){
       (*swaps)++;
       swap_monsters(list, i, j);
       i++;
@@ -121,7 +137,13 @@ int repartition(monster *list, int low_index, int high_index, int *comparisons, 
 void quick_sort_recursive(monster *list, int low_index, int high_index, int *comparisons, int *swaps,
                           int use_name, int use_weight)
 {
-  // YOUR CODE GOES HERE.
+  int pivot_index=repartition(list, low_index, high_index, comparisons, swaps, use_name, use_weight);
+  if(pivot_index-1>low_index){
+    quick_sort_recursive(list, low_index, pivot_index-1, comparisons, swaps, use_name, use_weight);
+  }
+  if(high_index > pivot_index+1){
+    quick_sort_recursive(list, pivot_index+1, high_index, comparisons, swaps, use_name, use_weight);
+  }
 }
 
 /* Shell function for quick sort. */
@@ -133,11 +155,9 @@ void quick_sort(monster *list, int n, int use_name, int use_weight)
   clock_t start_cpu, end_cpu;
 
   printf("Quick sort %d monsters by %s...\n", n, use_name ? "name" : "weight");
-
   start_cpu = clock();
   quick_sort_recursive(list, 0, n-1, &comparisons, &swaps, use_name, use_weight);
   end_cpu = clock();
-
   printf("Sort complete with %d comparisons and %d swaps.\n", comparisons, swaps);
   print_clocks(end_cpu - start_cpu);
 }
@@ -157,8 +177,16 @@ void bubble_sort(monster *list, int n, int use_name, int use_weight)
 
   start_cpu = clock();
 
-  // YOUR CODE GOES HERE.
-
+  for(i= n-1;i >= 0; i--)
+  {
+    for(j=0;j < i; j++){
+      comparisons++;
+      if(compare_monsters(&list[j], &list[j+1], use_name,use_weight)){
+        swaps++;
+        swap_monsters(list,j,j+1);
+      }
+    }
+  }
   end_cpu = clock();
   printf("Sort complete with %d comparisons and %d swaps.\n", comparisons, swaps);
   print_clocks(end_cpu - start_cpu);
@@ -168,7 +196,18 @@ void bubble_sort(monster *list, int n, int use_name, int use_weight)
 
 int find_highest(monster *list, int n, int *comparisons, int use_name, int use_weight)
 {
-  // YOUR CODE GOES HERE.
+  int highest= 0;
+  int i;
+    for(i=1;i<=n;i++){
+      (*comparisons)++;
+
+      if(compare_monsters(&list[i], &list[highest], use_name, use_weight)){
+        highest=i;
+      }
+
+    }
+
+  return highest;
 }
 
 /* Implement ascending selection sort. */
@@ -183,9 +222,28 @@ void selection_sort(monster *list, int n, int use_name, int use_weight)
 
   printf("Selection sort %d monsters by %s...\n", n, use_name ? "name" : "weight");
   start_cpu = clock();
+  /*if(n==50||n==5){
+    printf("BEFORE \n");
+    print_monster_list_debug(list, n, use_weight, use_name);
 
-  // YOUR CODE GOES HERE.
+  }
+  */
 
+  for(i=n-1;i>=0;i--){
+    highest= find_highest(list,i,&comparisons,use_name,use_weight);
+    if(highest !=i){
+      swaps++;
+      swap_monsters(list, i, highest);
+    }
+
+  }
+  /*
+  if(n==50||n==5){
+    printf("AFTER \n");
+    print_monster_list_debug(list, n, use_weight, use_name);
+
+  }
+  */
   end_cpu = clock();
   printf("Sort complete with %d comparisons and %d swaps.\n", comparisons, swaps);
   print_clocks(end_cpu - start_cpu);
@@ -335,6 +393,8 @@ void run_all_sorts(int n, int only_fast, int use_name, int use_weight) {
 }
 
 int main(void) {
+  run_all_sorts(5,0,0,1);
+  run_all_sorts(5,0,1,0);
   run_all_sorts(50, 0, 0, 1);
   run_all_sorts(50, 0, 1, 0);
   run_all_sorts(500, 0, 0, 1);
