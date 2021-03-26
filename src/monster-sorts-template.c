@@ -50,6 +50,7 @@ void output_monster_list(monster *list, int n, char *title) {
   printf("\n");
 }
 void print_monster_list_debug(monster* list, int n, int weight,int name){
+  if(n<501){
   if(name==1){
     for(int i=0;i<n;i++){
       printf("Monster %d : name %s \n",i,list[i].name);
@@ -59,6 +60,7 @@ void print_monster_list_debug(monster* list, int n, int weight,int name){
     for(int i=0;i<n;i++){
       printf("Monster %d : weight %f \n",i,list[i].weight);
     }
+  }
   }
 }
 void print_clocks(clock_t clocks) {
@@ -126,6 +128,7 @@ int repartition(monster *list, int low_index, int high_index, int *comparisons, 
       i++;
 
     }
+
   }
   swaps++;
   swap_monsters(list,i,high_index);
@@ -253,14 +256,36 @@ void selection_sort(monster *list, int n, int use_name, int use_weight)
 
 int insertion_sort_find_position(monster *list, int low_index, int high_index, monster *k, int *comparisons, int use_name, int use_weight)
 {
-  // YOUR CODE GOES HERE.
+  for(int i=low_index;i<high_index;i++){
+    (*comparisons)++;
+    if(compare_monsters(&list[i], k, use_name, use_weight)){
+      (*comparisons)++;
+      return i;
+    }
+
+  }
+  return high_index ;
+
 }
 
 /* Implement insertion sort. */
 
 void insertion_sort_internal(monster *list, int n, int *comparisons, int *copies, int *block_copies, int use_name, int use_weight)
 {
-  // YOUR CODE GOES HERE.
+  int insert_location;
+  monster monster_holder;
+  for(int i=1;i<n;i++){
+
+    insert_location=insertion_sort_find_position(list, 0, i, &list[i], comparisons, use_name, use_weight);
+    monster_holder=list[i];
+    (*copies)++;
+    memmove(&list[insert_location+1],&list[insert_location],sizeof(monster)*(i-insert_location));
+    (*block_copies)++;
+    list[insert_location]=monster_holder;
+    (*copies)++;
+
+  }
+
 }
 
 /* Shell for insertion sort. */
@@ -289,8 +314,48 @@ void merge_sort_merge(monster *list, int l1, int h1, int l2, int h2,
                       int *comparisons, int *copies, int *block_copies, int *mallocs,
                       int use_name, int use_weight)
 {
-  // YOUR CODE GOES HERE.
+  int l1_i=l1;
+  int h1_i=h1;
+  int l2_i=l2;
+  int h2_i=h2;
+  int tmp_i=0;
+
+  monster* tmp_arr=malloc(sizeof(monster)*((h2-l1)+1));
+  (*mallocs)++;
+  while((l1_i<=h1)&&(l2_i<=h2)){
+
+      (*comparisons)++;
+      (*copies)++;
+      if(compare_monsters(&list[l2_i], &list[l1_i], use_name, use_weight)){
+        tmp_arr[tmp_i]=list[l1_i];
+
+        tmp_i++;
+        l1_i++;
+      }
+      else{
+        tmp_arr[tmp_i]=list[l2_i];
+        tmp_i++;
+        l2_i++;
+    }
+
+  }
+  while(l1_i<=h1){
+    (*comparisons)++;
+    tmp_arr[tmp_i++]=list[l1_i++];
+    (*copies)++;
+  }
+  while(l2_i<=h2){
+    (*comparisons)++;
+    tmp_arr[tmp_i++]=list[l2_i++];
+    (*copies)++;
+  }
+  (*block_copies)++;
+  for(int i=l1;i<=h2;i++){
+    list[i]=tmp_arr[i-l1];
+  }
+  free(tmp_arr);
 }
+
 
 /* Recursive function for merge sort. */
 
@@ -298,7 +363,17 @@ void merge_sort_recursive(monster *list, int low_index, int high_index,
                           int *comparisons, int *copies, int *block_copies, int *mallocs,
                           int use_name, int use_weight)
 {
-  // YOUR CODE GOES HERE.
+  int mid;
+  if(high_index-low_index==0){
+    return;
+  }
+  if(low_index<high_index){
+    (*comparisons)++;
+    mid=(low_index+high_index)/2;
+    merge_sort_recursive(list, low_index, mid, comparisons, copies, block_copies, mallocs, use_name, use_weight);
+    merge_sort_recursive(list, mid+1, high_index, comparisons, copies, block_copies, mallocs, use_name, use_weight);
+    merge_sort_merge(list, low_index, mid, mid+1,high_index, comparisons, copies, block_copies, mallocs, use_name, use_weight);
+  }
 }
 
 /* Implement merge sort. */
@@ -328,8 +403,20 @@ void merge_insertion_sort_recursive(monster *list, int low_index, int high_index
                                     int *comparisons, int *copies, int *block_copies, int *mallocs,
                                     int use_name, int use_weight)
 {
-  // YOUR CODE GOES HERE.
-}
+
+
+  int size=(high_index-low_index+1);
+  if(size>25){
+    int mid=(high_index+low_index)/2;
+    merge_insertion_sort_recursive(list, low_index, mid, comparisons, copies, block_copies, mallocs, use_name, use_weight);
+    merge_insertion_sort_recursive(list, mid+1, high_index, comparisons, copies, block_copies, mallocs, use_name, use_weight);
+    merge_sort_merge(list, low_index, mid, mid+1, high_index, comparisons, copies, block_copies, mallocs, use_name, use_weight);
+      }
+  else{
+    insertion_sort_internal(list+low_index, size, comparisons, copies, block_copies, use_name, use_weight);
+  }
+
+  }
 
 /* Implement merge sort. */
 
@@ -393,8 +480,6 @@ void run_all_sorts(int n, int only_fast, int use_name, int use_weight) {
 }
 
 int main(void) {
-  run_all_sorts(5,0,0,1);
-  run_all_sorts(5,0,1,0);
   run_all_sorts(50, 0, 0, 1);
   run_all_sorts(50, 0, 1, 0);
   run_all_sorts(500, 0, 0, 1);
